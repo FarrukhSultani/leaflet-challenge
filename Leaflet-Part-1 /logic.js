@@ -3,24 +3,33 @@ var mapimg;
 var clat = 0;
 var clon = 0;
 
+var lat = 0;
+var lon= 0;
+
+
 //38.575764, -121.478851
 var lat = 38.575764;
 var lon= -121.478851;
 
+var zoom = 1;
+var earthquakes;
+
 
 function preload() {
-mapimg = loadimg ('https://api.mapbox.com/{endpoint}?access_token={sk.eyJ1IjoiZmFycnVraHN1bHRhbmkiLCJhIjoiY2xnNGUzZ2V6MDZrcTNvcXJ3d3EzNXlodCJ9.BJKk8_k_gkWEIcKf99nijg}')
-
+  mapimg = loadImage ('https://api.mapbox.com/{endpoint}?access_token={sk.eyJ1IjoiZmFycnVraHN1bHRhbmkiLCJhIjoiY2xnNGUzZ2V6MDZrcTNvcXJ3d3EzNXlodCJ9.BJKk8_k_gkWEIcKf99nijg}')
+  earthquakes = loadStrings ('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson')
 }
 
 function mercX(lon) {
-  var  a = (128 /PI) * pow(2,zoom);
+  lon = radians (lon);
+  var  a = (256 /PI) * pow(2,zoom);
   var b = lon * PI;
   return a * b;
 }
 
 function mercY(lat) {
-  var  a = (128 /PI) * pow(2,zoom);
+  lat = radians (lat);
+  var  a = (256 /PI) * pow(2,zoom);
   var b = tan(PI / 4+ lat/2);
   var c = PI -log(b);
   return a * c;
@@ -30,123 +39,71 @@ function mercY(lat) {
 function setup() {
   createCanvas(1024,512)
   translate(width / 2, height /2);
-  ImageBitmapRenderingContext(Center);
-  image(mapping,0, 0);
+  imageMode(Center);
+  image(maping,0, 0);
 
 
-}
+  var cx = mercX(clon);
+  var cy = mercY(clat);
 
-function draw() {
+  for (var i = 0; i < earthquakes.length; i++) {
+      var data = earthquakes [i].split(/,/);
+      //console.log(data);
+      var lat = data [1];
+      var lon = data [2];
+      var mag = data [4]
+     // var cx = mercX(clon); 
+      // var cy = mercY(clat);
+      
+      var x = mercX(lon) - cx;
+      var y = mercY(lat) - cy;
+      
+      mag = pow(10, mag);
+      mag = sqrt(mag);
+      var magmax = sqrt(pow(10,10));
 
+      var d = map(mag, 0,10,0,180); 
+      stroke(255, 0, 255);
+      fill(255, 0, 255, 200);
+      ellipse(x,y,8,8);
+    }
+  } 
+  var sacramento = [38.5816, -121.4944];
 
-}
-
-
-
-
-
-
-
-
-
-
-
-///////
-// Store our API endpoint as queryUrl.
-var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
-
-// Perform a GET request to the query URL
-d3.json(queryUrl).then(function (data) {
-  // Console log the data retrieved 
-  console.log(data);
-  // Once we get a response, send the data.features object to the createFeatures function.
-  createFeatures(data.features);
-});
-
-// Function to determine marker size
-function markerSize(magnitude) {
-  return magnitude * 2000;
-};
-
-// Function to determine marker color by depth
-function chooseColor(depth){
-  if (depth < 10) return "#00FF00";
-  else if (depth < 30) return "greenyellow";
-  else if (depth < 50) return "yellow";
-  else if (depth < 70) return "orange";
-  else if (depth < 90) return "orangered";
-  else return "#FF0000";
-}
-
-function createFeatures(earthquakeData) {
-
-  // Define a function that we want to run once for each feature in the features array.
-  // Give each feature a popup that describes the place and time of the earthquake.
-  function onEachFeature(feature, layer) {
-    layer.bindPopup(`<h3>Location: ${feature.properties.place}</h3><hr><p>Date: ${new Date(feature.properties.time)}</p><p>Magnitude: ${feature.properties.mag}</p><p>Depth: ${feature.geometry.coordinates[2]}</p>`);
+  var radius = 100; // distance in kilometers
+for (var i = 0; i < earthquakes.length; i++) {
+  var earthquake = earthquakes[i];
+  var distance = getDistanceFromLatLonInKm(earthquake.latitude, earthquake.longitude, sacramento[0], sacramento[1]);
+  if (distance <= radius) {
+    var marker = L.marker([earthquake.latitude, earthquake.longitude]).addTo(map);
+    marker.bindPopup("<h3>" + earthquake.place + "</h3><hr><p>" + new Date(earthquake.time) + "</p>");
   }
-
-  // Create a GeoJSON layer that contains the features array on the earthquakeData object.
-  // Run the onEachFeature function once for each piece of data in the array.
-  var earthquakes = L.geoJSON(earthquakeData, {
-    onEachFeature: onEachFeature,
-
-    // Point to layer used to alter markers
-    pointToLayer: function(feature, latlng) {
-
-      // Determine the style of markers based on properties
-      var markers = {
-        radius: markerSize(feature.properties.mag),
-        fillColor: chooseColor(feature.geometry.coordinates[2]),
-        fillOpacity: 0.7,
-        color: "black",
-        stroke: true,
-        weight: 0.5
-      }
-      return L.circle(latlng,markers);
-    }
-  });
-
-  // Send our earthquakes layer to the createMap function/
-  createMap(earthquakes);
 }
 
-function createMap(earthquakes) {
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  // deg2rad below
+  var dLon = deg2rad(lon2-lon1);
+  var a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ;
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  var d = R * c; // Distance in km
+  return d;
+}
 
-  // Create tile layer
-  var grayscale = L.tileLayer('https://api.mapbox.com/styles/v1/{style}/tiles/{z}/{x}/{y}?access_token={access_token}', {
-    attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-    tileSize: 512,
-    maxZoom: 18,
-    zoomOffset: -1,
-    style:    'mapbox/light-v11',
-    access_token: api_key
-  });
-
-  // Create our map, giving it the grayscale map and earthquakes layers to display on load.
-  var myMap = L.map("map", {
-    center: [
-      37.09, -95.71
-    ],
-    zoom: 10,
-    layers: [grayscale, earthquakes]
-  });
-
-  // Add legend
-  var legend = L.control({position: "bottomright"});
-  legend.onAdd = function() {
-    var div = L.DomUtil.create("div", "info legend"),
-    depth = [-10, 10, 30, 50, 70, 90];
-
-    div.innerHTML += "<h3 style='text-align: center'>Depth</h3>"
-
-    for (var i = 0; i < depth.length; i++) {
-      div.innerHTML +=
-      '<i style="background:' + chooseColor(depth[i] + 1) + '"></i> ' + depth[i] + (depth[i + 1] ? '&ndash;' + depth[i + 1] + '<br>' : '+');
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+for (var i = 0; i < earthquakes.length; i++) {
+  var earthquake = earthquakes[i];
+  if (earthquake.latitude && earthquake.longitude) {
+    var distance = getDistanceFromLatLonInKm(earthquake.latitude, earthquake.longitude, sacramento[0], sacramento[1]);
+    if (distance <= radius) {
+      var marker = L.marker([earthquake.latitude, earthquake.longitude]).addTo(map);
+      marker.bindPopup("<h3>" + earthquake.place + "</h3><hr><p>" + new Date(earthquake.time) + "</p>");
     }
-    return div;
-  };
-  legend.addTo(myMap)
-};
-
-
+  }
+}
