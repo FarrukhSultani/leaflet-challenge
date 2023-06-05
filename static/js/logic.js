@@ -1,9 +1,8 @@
-///////
 // Store our API endpoint as queryUrl.
 var queryUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
 // Perform a GET request to the query URL
-d3.json(queryUrl).then(function (data) {
+d3.json(queryUrl).then(function(data) {
   // Console log the data retrieved 
   console.log(data);
   // Once we get a response, send the data.features object to the createFeatures function.
@@ -13,10 +12,10 @@ d3.json(queryUrl).then(function (data) {
 // Function to determine marker size
 function markerSize(magnitude) {
   return magnitude * 2000;
-};
+}
 
 // Function to determine marker color by depth
-function chooseColor(depth){
+function chooseColor(depth) {
   if (depth < 10) return "#00FF00";
   else if (depth < 30) return "greenyellow";
   else if (depth < 50) return "yellow";
@@ -49,40 +48,38 @@ function createFeatures(earthquakeData) {
         color: "black",
         stroke: true,
         weight: 0.5
-      }
-      return L.circle(latlng,markers);
+      };
+      return L.circle(latlng, markers);
     }
   });
 
-  // Send our earthquakes layer to the createMap function/
+  // Send our earthquakes layer to the createMap function.
   createMap(earthquakes);
 }
 
 function createMap(earthquakes) {
 
   // Create tile layer
-  var grayscale = L.tileLayer(https://api.mapbox.com/{endpoint}?access_token={sk.eyJ1IjoiZmFycnVraHN1bHRhbmkiLCJhIjoiY2xnNGUzZ2V6MDZrcTNvcXJ3d3EzNXlodCJ9.BJKk8_k_gkWEIcKf99nijg}'), {
+  var grayscale = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={pk.eyJ1IjoiZmFycnVraHN1bHRhbmkiLCJhIjoiY2xnNXRhbjFxMDUyZDNwcjB3azJ4aW53ayJ9.yQGQVshuBcIQOkNC5WYfxw}', {
     attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
     tileSize: 512,
     maxZoom: 18,
     zoomOffset: -1,
-    style:    'mapbox/light-v11',
-    access_token: api_key}
-    );
+    id: "mapbox/light-v10",
+    accessToken: "{pk.eyJ1IjoiZmFycnVraHN1bHRhbmkiLCJhIjoiY2xnNXRhbjFxMDUyZDNwcjB3azJ4aW53ayJ9.yQGQVshuBcIQOkNC5WYfxw}}"
+  });
 
   // Create our map, giving it the grayscale map and earthquakes layers to display on load.
   var myMap = L.map("map", {
-    center: [
-      37.09, -95.71
-    ],
-    zoom: 10,
+    center: [37.09, -95.71],
+    zoom: 3,
     layers: [grayscale, earthquakes]
   });
 
   // Add legend
-  var legend = L.control({position: "bottomright"});
+  var legend = L.control({ position: "bottomright" });
   legend.onAdd = function() {
-    var div = L.DomUtil.create("div", "info legend"),
+    var div = L.DomUtil.create("div", "inflegend"),
     depth = [-10, 10, 30, 50, 70, 90];
 
     div.innerHTML += "<h3 style='text-align: center'>Depth</h3>"
@@ -95,4 +92,3 @@ function createMap(earthquakes) {
   };
   legend.addTo(myMap);
 }
-
